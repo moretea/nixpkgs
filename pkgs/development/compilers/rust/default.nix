@@ -1,5 +1,5 @@
 { stdenv, callPackage, recurseIntoAttrs, makeRustPlatform,
-  targets ? [], targetToolchains ? [], targetPatches ? [] }:
+  targets ? [], targetToolchains ? [], targetPatches ? [], extraRustcConfigureFlags ? [] }:
 
 let
   rustPlatform = recurseIntoAttrs (makeRustPlatform (callPackage ./bootstrap.nix {}));
@@ -10,7 +10,7 @@ rec {
     shortVersion = "1.10.0";
     isRelease = true;
     forceBundledLLVM = false;
-    configureFlags = [ "--release-channel=stable" ];
+    configureFlags = extraRustcConfigureFlags ++ [ "--release-channel=stable" ];
     srcRev = "cfcb716cf0961a7e3a4eceac828d94805cf8140b";
     srcSha = "15i81ybh32xymmkyz3bkb5bdgi9hx8nb0sh00ac6qba6w8ljpii9";
     patches = [
