@@ -7,16 +7,14 @@ in
 
 rec {
   rustc = callPackage ./rustc.nix {
-    shortVersion = "1.13";
+    shortVersion = "1.14";
     isRelease = true;
     forceBundledLLVM = false;
     configureFlags = [ "--release-channel=stable" ];
-    srcRev = "2c6933acc05c61e041be764cb1331f6281993f3f";
-    srcSha = "1w0alyyc29cy2lczrqvg1kfycjxy0xg8fpzdac80m88fxpv23glp";
+    srcRev = "e8a0123241f0d397d39cd18fcc4e5e7edde22730";
+    srcSha = "1sla3gnx9dqvivnyhvwz299mc3jmdy805q2y5xpmpi1vhfk0bafx";
 
-    patches = [
-      ./patches/disable-lockfile-check-stable.patch
-    ] ++ stdenv.lib.optional stdenv.needsPax ./patches/grsec.patch;
+    patches = [ ] ++ stdenv.lib.optional stdenv.needsPax ./patches/grsec.patch;
 
     inherit targets;
     inherit targetPatches;
