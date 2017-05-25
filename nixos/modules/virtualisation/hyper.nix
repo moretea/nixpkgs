@@ -31,6 +31,12 @@ in
       description = "The unix or tcp address that hyper should listen to.";
     };
 
+    gRPCHost = mkOption {
+      type = types.str;
+      default = "127.0.0.1:22318";
+      description = "The endpoint of the gRPC API";
+    };
+
     logLevel = mkOption {
       type = types.int;
       default = 1;
@@ -52,6 +58,7 @@ in
           Kernel=${pkgs.hypercontainer-guest}/var/lib/hyper/kernel
           Initrd=${pkgs.hypercontainer-guest}/var/lib/hyper/hyper-initrd.img
           StorageDriver=overlay
+          gRPCHost=${cfg.gRPCHost}
           BridgeIP=10.1.0.1/24
         '';
       in {
