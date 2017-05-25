@@ -557,6 +557,7 @@
       jackett = 276;
       aria2 = 277;
       clickhouse = 278;
+      hyper = 279;
 
       # When adding a gid, make sure it doesn't match an existing
       # uid. Users and groups with the same name should have equal

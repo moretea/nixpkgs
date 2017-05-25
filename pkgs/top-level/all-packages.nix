@@ -14338,6 +14338,10 @@ with pkgs;
   hydrogen = callPackage ../applications/audio/hydrogen { };
 
   hyper = callPackage ../applications/misc/hyper { inherit (gnome2) GConf; };
+  hypercontainer = callPackage ../applications/virtualization/hyper { };
+  hypercontainer-guest = callPackage ../applications/virtualization/hyper/guest.nix { };
+
+
   hyperterm = self.hyper;
 
   jackline = callPackage ../applications/networking/instant-messengers/jackline {
