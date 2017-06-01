@@ -1,6 +1,9 @@
 { stdenv
 , jshon
 , fetchzip
+, glib
+, nss
+, nspr
 , enablePepperFlash ? false
 , enableWideVine ? false
 
@@ -63,13 +66,17 @@ let
       ! find -iname '*.so' -exec ldd {} + | grep 'not found'
     '';
 
-    patchPhase = ''
+    patchPhase =
+      let
+        rpath = mkrpath [ stdenv.cc.cc glib nss nspr];
+      in
+      ''
       for sofile in libwidevinecdm.so libwidevinecdmadapter.so; do
         chmod +x "$sofile"
-        patchelf --set-rpath "${mkrpath [ stdenv.cc.cc ]}" "$sofile"
+        patchelf --set-rpath "${rpath}" "$sofile"
       done
 
-      patchelf --set-rpath "$out/lib:${mkrpath [ stdenv.cc.cc ]}" \
+      patchelf --set-rpath "$out/lib:${rpath}" \
         libwidevinecdmadapter.so
     '';
 
