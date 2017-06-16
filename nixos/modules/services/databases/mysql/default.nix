@@ -70,6 +70,28 @@ in
         description = "User account under which MySQL runs";
       };
 
+      users = mkOption {
+        type = types.attrsOf (types.submodule (import ./user.nix { inherit lib; }));
+        default = {};
+        description = ''
+          Declarative users & permissions.
+          Only database, and table level permissions are supported;
+        '';
+        example = literalExample ''
+          {
+            "alice" = {
+              user.privs.drop = true;
+              user.privs.create = true;
+              dbs.alice_db.privs.insert = true;
+            };
+
+            "bob" = {
+              dbs.alice_db.privs.select = true;
+            };
+          }
+        '';
+      };
+
       dataDir = mkOption {
         type = types.path;
         example = "/var/lib/mysql";
@@ -291,6 +313,11 @@ in
 
               rm /tmp/mysql_init
             fi
+
+            # Ensure that the permissions are set
+            echo '${builtins.toJSON cfg.users}' | ${pkgs.nixos-mysql-permissions}/bin/nixos-mysql-permissions \
+            -u root \
+            ${optionalString (cfg.rootPassword != null) "-p $(cat ${cfg.rootPassword})"}
           ''; # */
       };
 

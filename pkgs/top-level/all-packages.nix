@@ -18409,6 +18409,8 @@ with pkgs;
 
   nixos-container = callPackage ../tools/virtualization/nixos-container { };
 
+  nixos-mysql-permissions = callPackage ../tools/misc/nixos-mysql-permissions { };
+
   norwester-font = callPackage ../data/fonts/norwester  {};
 
   nut = callPackage ../applications/misc/nut { };

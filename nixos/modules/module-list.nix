@@ -179,7 +179,7 @@
   ./services/databases/influxdb.nix
   ./services/databases/memcached.nix
   ./services/databases/mongodb.nix
-  ./services/databases/mysql.nix
+  ./services/databases/mysql
   ./services/databases/neo4j.nix
   ./services/databases/openldap.nix
   ./services/databases/opentsdb.nix

@@ -21,7 +21,7 @@ stdenv.mkDerivation rec {
     sha256 = "04pzmif8jxjww3fdf2zbg3k7cm49vxc9hhf4xhmvdmvywgin6fqp";
   };
 
-  buildInputs = [ env nodejs ];
+  buildInputs = [ env.wrappedRuby nodejs ];
 
   buildPhase = ''
     cp config/database.yml.template config/database.yml
@@ -39,8 +39,4 @@ stdenv.mkDerivation rec {
     ln -sf /run/frab/system $out/share/frab/public/system
     ln -sf /tmp $out/share/frab/tmp
   '';
-
-  passthru = {
-    inherit env ruby;
-  };
 }

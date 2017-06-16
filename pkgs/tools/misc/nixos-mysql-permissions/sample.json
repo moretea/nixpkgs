@@ -1,0 +1,8 @@
+{
+  "db-user": {
+    "_module": {"args": {"name": "db-user"}, "check": true},
+    "host" : "%",
+    "user": {"privs": {"create": true, "drop": true}},
+    "dbs": {}
+  }
+}
