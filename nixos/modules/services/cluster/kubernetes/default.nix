@@ -5,7 +5,6 @@ with lib;
 let
   cfg = config.services.kubernetes;
 
-
   infraContainer = pkgs.dockerTools.buildImage {
     name = "pause";
     tag = "latest";
@@ -13,29 +12,7 @@ let
     config.Cmd = "/bin/pause";
   };
 
-  kubeconfig = pkgs.writeText "kubeconfig" (builtins.toJSON {
-    apiVersion = "v1";
-    kind = "Config";
-    clusters = [{
-      name = "local";
-      cluster.certificate-authority = cfg.kubeconfig.caFile;
-      cluster.server = cfg.kubeconfig.server;
-    }];
-    users = [{
-      name = "kubelet";
-      user = {
-        client-certificate = cfg.kubeconfig.certFile;
-        client-key = cfg.kubeconfig.keyFile;
-      };
-    }];
-    contexts = [{
-      context = {
-        cluster = "local";
-        user = "kubelet";
-      };
-      current-context = "kubelet-context";
-    }];
-  });
+  kubeconfig = (import ./kubeconfig.nix { inherit pkgs; inherit cfg; });
 
   policyFile = pkgs.writeText "kube-policy"
     (concatStringsSep "\n" (map builtins.toJSON cfg.apiserver.authorizationPolicy));
