@@ -5,8 +5,6 @@ with lib;
 let
   cfg = config.services.kubernetes;
 
-  skipAttrs = attrs: map (filterAttrs (k: v: k != "enable"))
-    (filter (v: !(hasAttr "enable" v) || v.enable) attrs);
 
   infraContainer = pkgs.dockerTools.buildImage {
     name = "pause";
