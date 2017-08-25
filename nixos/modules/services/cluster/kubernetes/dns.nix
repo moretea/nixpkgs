@@ -13,7 +13,7 @@ let
 
 in {
 
-  optins.services.kubernetes.dns = {
+  options.services.kubernetes.dns = {
     enable = mkEnableOption "kubernetes dns service.";
 
     port = mkOption {
