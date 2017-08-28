@@ -5,7 +5,7 @@ let
   cfg = config.services.kubernetes;
 
 in {
-  options.services.kubernetes.api-server = {
+  options = {
     enable = mkOption {
       description = "Whether to enable kubernetes apiserver.";
       default = false;
@@ -182,6 +182,7 @@ in {
     };
   };
 
+  /*
   config = mkIf cfg.apiserver.enable {
     systemd.services.kube-apiserver = {
       description = "Kubernetes Kubelet Service";
@@ -240,4 +241,5 @@ in {
       };
     };
   };
+  */
 }

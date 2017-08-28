@@ -12,7 +12,7 @@ let
 
 in {
 
-  imports = [ ./kubelet.nix ./api-server.nix ./scheduler.nix ./controller-manager.nix];
+#  imports = [ ./kubelet.nix ./api-server.nix ./scheduler.nix ./controller-manager.nix];
 
   ###### interface
 
@@ -98,12 +98,41 @@ in {
       default = "/var/lib/kubernetes";
       type = types.path;
     };
+
+    kubelet = mkOption {
+      description= "Kubelet configuration";
+      type = types.submodule (import ./kubelet.nix);
+    };
+
+    apiserver = mkOption {
+      description = "API server configuration";
+      type = types.submodule (import ./api-server.nix);
+    };
+
+    controllerManager = mkOption {
+      description = "API server configuration";
+      type = types.submodule (import ./controller-manager.nix);
+    };
+
+    scheduler = mkOption {
+      description = "Scheduler configuration";
+      type = types.submodule (import ./scheduler.nix);
+    };
+
+    proxy = mkOption {
+      descrition = "Proxy configuration";
+      type = types.submodule (import ./proxy.nix);
+    };
+
+    dns = mkOption {
+      description = "DNS configuration";
+      type = types.submodule (import ./dns.nix);
+    };
   };
 
   ###### implementation
 
   config = mkMerge [
-
 
     (mkIf cfg.kubelet.enable {
       boot.kernelModules = ["br_netfilter"];
@@ -111,30 +140,30 @@ in {
 
     (mkIf (any (el: el == "master") cfg.roles) {
       virtualisation.docker.enable = mkDefault true;
-      services.kubernetes.kubelet.enable = mkDefault true;
-      services.kubernetes.kubelet.allowPrivileged = mkDefault true;
-      services.kubernetes.apiserver.enable = mkDefault true;
-      services.kubernetes.scheduler.enable = mkDefault true;
-      services.kubernetes.controllerManager.enable = mkDefault true;
+#      services.kubernetes.kubelet.enable = mkDefault true;
+#      services.kubernetes.kubelet.allowPrivileged = mkDefault true;
+#      services.kubernetes.apiserver.enable = mkDefault true;
+#      services.kubernetes.scheduler.enable = mkDefault true;
+#      services.kubernetes.controllerManager.enable = mkDefault true;
       services.etcd.enable = mkDefault (cfg.etcd.servers == ["http://127.0.0.1:2379"]);
     })
 
     (mkIf (any (el: el == "node") cfg.roles) {
-      virtualisation.docker.enable = mkDefault true;
-      virtualisation.docker.logDriver = mkDefault "json-file";
-      services.kubernetes.kubelet.enable = mkDefault true;
+#      virtualisation.docker.enable = mkDefault true;
+#      virtualisation.docker.logDriver = mkDefault "json-file";
+#      services.kubernetes.kubelet.enable = mkDefault true;
       services.kubernetes.proxy.enable = mkDefault true;
       services.kubernetes.dns.enable = mkDefault true;
     })
 
-    (mkIf (
-        cfg.apiserver.enable ||
-        cfg.scheduler.enable ||
-        cfg.controllerManager.enable ||
-        cfg.kubelet.enable ||
+    (mkIf (false && (
+#        cfg.apiserver.enable ||
+#        cfg.scheduler.enable ||
+#        cfg.controllerManager.enable ||
+#        cfg.kubelet.enable ||
         cfg.proxy.enable ||
         cfg.dns.enable
-    ) {
+    )) {
       systemd.targets.kubernetes = {
         description = "Kubernetes";
         wantedBy = [ "multi-user.target" ];

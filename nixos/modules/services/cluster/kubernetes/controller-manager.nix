@@ -67,6 +67,8 @@ in {
       type = types.str;
     };
   };
+
+/*
   config = mkIf cfg.controllerManager.enable {
    systemd.services.kube-controller-manager = {
      description = "Kubernetes Controller Manager Service";
@@ -99,4 +101,5 @@ in {
      };
    };
  };
+ */
 }

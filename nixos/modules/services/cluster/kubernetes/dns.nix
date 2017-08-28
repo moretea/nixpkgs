@@ -35,6 +35,7 @@ in {
     };
   };
 
+/*
   config = mkIf cfg.dns.enable {
     systemd.services.kube-dns = {
       description = "Kubernetes Dns Service";
@@ -58,5 +59,6 @@ in {
       };
     };
   };
+  */
 }
 

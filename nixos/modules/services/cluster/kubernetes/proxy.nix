@@ -25,7 +25,7 @@ in {
       type = types.str;
     };
   };
-
+/*
   config = mkIf cfg.proxy.enable {
     systemd.services.kube-proxy = {
       description = "Kubernetes Proxy Service";
@@ -45,4 +45,5 @@ in {
       };
     };
   };
+  */
 }

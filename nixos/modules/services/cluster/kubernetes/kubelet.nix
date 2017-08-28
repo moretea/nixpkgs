@@ -166,6 +166,7 @@ in {
     };
   };
 
+/*
   config = mkIf cfg.kubelet.enable {
       systemd.services.kubelet = {
         description = "Kubernetes Kubelet Service";
@@ -224,4 +225,5 @@ in {
       # Allways include cni plugins
       services.kubernetes.kubelet.cni.packages = [pkgs.cni];
     };
+    */
 }

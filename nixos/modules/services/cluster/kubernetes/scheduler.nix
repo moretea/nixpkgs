@@ -37,7 +37,7 @@ in {
       type = types.str;
     };
   };
-
+/*
   config = mkIf cfg.scheduler.enable {
     systemd.services.kube-scheduler = {
       description = "Kubernetes Scheduler Service";
@@ -60,5 +60,6 @@ in {
       };
     };
   };
+  */
 }
 
