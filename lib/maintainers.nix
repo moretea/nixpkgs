@@ -1,4 +1,4 @@
-{ ...}:
+{ outputStructured ? false, ...}:
 /* List of NixOS maintainers. The format is:
 
     handle = "Real Name <address@example.org>";
@@ -6,7 +6,8 @@
   where <handle> is preferred to be your GitHub username (so it's easy
   to ping a package @<handle>), and <Real Name> is your real name, not
   a pseudonym. Please keep the list alphabetically sorted. */
-{
+let
+maintainers = {
   a1russell = "Adam Russell <adamlr6+pub@gmail.com>";
   aaronschif = "Aaron Schif <aaronschif@gmail.com>";
   abaldeau = "Andreas Baldeau <andreas@baldeau.net>";
@@ -185,7 +186,7 @@
   ederoyd46 = "Matthew Brown <matt@ederoyd.co.uk>";
   eduarrrd = "Eduard Bachmakov <e.bachmakov@gmail.com>";
   edwtjo = "Edward Tjörnhammar <ed@cflags.cc>";
-  eelco = "Eelco Dolstra <eelco.dolstra@logicblox.com>";
+  eelco = { GitHub ="edolstra"; email = "Eelco Dolstra <eelco.dolstra@logicblox.com>"; };
   ehegnes = "Eric Hegnes <eric.hegnes@gmail.com>";
   ehmry = "Emery Hemingway <emery@vfemail.net>";
   eikek = "Eike Kettner <eike.kettner@posteo.de>";
@@ -700,4 +701,16 @@
   zraexy = "David Mell <zraexy@gmail.com>";
   zx2c4 = "Jason A. Donenfeld <Jason@zx2c4.com>";
   zzamboni = "Diego Zamboni <diego@zzamboni.org>";
-}
+};
+lib = import ./.;
+convertToStructured = maintainer: details:
+  if builtins.typeOf details == "string"
+  then { GitHub = maintainer; email = details; }
+  else if !builtins.hasAttr "GitHub" details then details // { GitHub = maintainer; } else details;
+
+convertToStringList = maintainer: details:
+  if builtins.typeOf details =="string" then details else details.email;
+
+mapFn = if outputStructured then convertToStructured else convertToStringList;
+in
+  lib.mapAttrs mapFn maintainers
