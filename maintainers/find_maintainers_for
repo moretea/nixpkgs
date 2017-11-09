@@ -1,0 +1,232 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -p python3 -p python3Packages.termcolor -i python3
+# vi:syntax=python
+
+from pathlib import Path
+import subprocess
+import json
+import sys
+from termcolor import colored
+import re
+
+# Design
+#
+# Top level exception: FindMaintainersException
+# Models: RuleList, Rule, GlobPath, Maintainer
+# Utility: RuleListPrinter
+# Parser: MaintainersFileParser, CannotParseMaintainersFile
+# Evaluator: RuleListEvaluator
+
+
+class FindMaintainersException(Exception):
+  def __init__(self, message, details):
+    self.message = message
+    self.details = details
+  pass
+
+class CannotParseMaintainersFile(FindMaintainersException):
+  def __init__(self, output):
+    super().__init__("Evaluating the maintainers file failed", output)
+
+class Maintainer:
+  def __init__(self, email, github):
+    self.email = email
+    self.github = github
+
+  def __str__(self):
+    if self.github:
+      return "@" + self.github
+    else:
+      return self.email
+
+  def __repr__(self):
+    return "<Maintainer {}>".format(str(self))
+
+
+class Rule:
+  def __init__(self, parent, position):
+    self.parent = parent
+    self.position = position
+    self.description = None
+    self.paths = None
+    self.maintainers = None
+    self.delegate = []
+    self.script = None
+
+  def matches(self, path_to_match):
+    for path in self.paths:
+      if path.matches(path_to_match):
+        return True
+    return False
+
+  def __repr__(self):
+    return "<Rule description='{}'>".format(self.description)
+
+class Path:
+  def __init__(self, glob):
+    self.glob = glob
+    self.regex = Path._glob_to_regex(glob)
+  def matches(self, path):
+    res = bool(self.regex.fullmatch(path))
+    return res
+
+  def _glob_to_regex(glob):
+    parts = glob.split("/")
+
+    def part2regex(part):
+      if part == "*":
+        return "[^/]+"
+      elif part =="**":
+        return "[^/]+(/[^/]+)*"
+      else:
+        return re.escape(part)
+    regex = "/".join(map(part2regex, parts))
+    return re.compile(regex)
+  def __repr__(self):
+    return "<Path glob={}>".format(self.glob)
+
+class MaintainersFileParser:
+  ADD_POS_NIX_EXPR = """
+    let
+      maintainers = import ./maintainers.nix {};
+      maybeDelegate = rule: if builtins.hasAttr "delegate" rule then { delegate = recurse rule.delegate ; } else {};
+      addPos = rule: { pos = builtins.unsafeGetAttrPos "description" rule; };
+      recurse' = rule: rule // (addPos rule ) // (maybeDelegate rule);
+      recurse = rules: map recurse'  rules;
+    in
+      recurse maintainers
+  """
+
+  def parse():
+    process = subprocess.Popen(["nix-instantiate", "--eval", "--strict", "--json", "-"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate(str.encode(MaintainersFileParser.ADD_POS_NIX_EXPR))
+
+    if process.returncode != 0:
+      raise CannotParseMaintainersFile(stderr.decode("utf-8"))
+    else:
+      nix_json = json.loads(stdout)
+      return MaintainersFileParser.parse_rules(None, nix_json)
+
+  def parse_rules(parent, rules):
+    rules = [MaintainersFileParser.parse_rule(parent,rule) for rule in rules]
+    rules_and_delegated_rules = list(map(lambda rule: rule.delegate + [rule], rules))
+    flattened = sum(rules_and_delegated_rules, [])#[x for xs in rules_and_delegated_rules for x in xs ]
+    return flattened
+
+  def parse_position(pos):
+    return "{}:{}:{}".format(pos["file"],pos["line"],pos["column"])
+
+  def parse_rule(parent, json_rule):
+    position = MaintainersFileParser.parse_position(json_rule["pos"])
+
+    def get_opt(opt_name):
+      val = json_rule.get(opt_name)
+      if val is None:
+        raise CannotParseMaintainersFile("Required '{}' not set for rule on {}".format(opt_name, position))
+      else:
+        return val
+
+    rule = Rule(parent, position)
+    rule.description = get_opt("description")
+    rule.paths = map(lambda p: MaintainersFileParser.parse_path(rule,p), get_opt("paths"))
+    maintainers = get_opt("maintainers")
+    rule.maintainers = list(map(lambda m: MaintainersFileParser.parse_maintainer(rule, m), maintainers))
+
+    rule.script = json_rule.get("script")
+
+    delegate = json_rule.get("delegate")
+    if delegate is not None:
+      rule.delegate = MaintainersFileParser.parse_rules(rule, delegate)
+
+    return rule
+
+  def parse_path(rule, path_glob):
+    return Path(path_glob)
+
+  def parse_maintainer(rule, maintainers):
+    email = maintainers.get("email")
+    github = maintainers.get("GitHub")
+    if email is None or github is None:
+        raise CannotParseMaintainersFile("GitHub or Email not set for maintainer in rule {} ({})".format(rule.name, rule.position))
+    else:
+      return Maintainer(email, github)
+
+class RuleListPrinter:
+  def print(rules, output=sys.stdout):
+    RuleListPrinter.print_list(rules, 0, True, output)
+
+  def print_list(rules, indent, skip_if_parents, output):
+    first = True
+    for rule in rules:
+      if rule.parent is None or (not skip_if_parents):
+        if first:
+          first = False
+        else:
+          print()
+
+        RuleListPrinter.print_rule(rule, indent, output)
+
+
+  def print_rule(rule, indent, output):
+    indent_str = "  " * indent
+
+    print(indent_str, rule.description, file=output, sep="")
+
+    print(indent_str," Maintainers:")
+    for maintainer in rule.maintainers:
+      print(indent_str, "  ", str(maintainer))
+
+    print(indent_str, " Paths:")
+    for path in rule.paths:
+      print(indent_str, "  ", path.glob)
+
+    if rule.delegate:
+      print(indent_str, " Delegate:")
+      RuleListPrinter.print_list(rule.delegate, indent + 2, False, output)
+
+class RuleListEvaluator:
+  def __init__(self, rules):
+    self.rules = rules
+
+  def find_maintainers_for(self, paths):
+    results = { "byPath": {}, "byMaintainer": {} }
+    for path in paths:
+      matching_rules_by_path = [rule for rule in self.rules if rule.matches(path)]
+
+      if len(matching_rules_by_path) > 0:
+        maintainer_names = list(map(lambda x: str(x), matching_rules_by_path[0].maintainers))
+        results["byPath"][path] = maintainer_names
+        for maintainer in maintainer_names:
+          paths = results["byMaintainer"].get(maintainer, [])
+          paths.append(path)
+          results["byMaintainer"][maintainer] = paths
+
+    return results
+
+
+      # Now one by one check if a rule is OK, then take those maintainers.
+      # Special case is scripts.
+
+if __name__ == "__main__":
+    from optparse import OptionParser
+    description = "Current working directory must by a nixpkgs. The paths should be relative to the nixpkgs directory"
+    parser = OptionParser(usage="usage: %prog [options] paths*", description=description)
+    parser.add_option("-p", "--print-rules", action="store_true", dest="print_rules")
+# TODO
+#    parser.add_option("-w", "--why", action="store_true", dest="why")
+    (options, paths) = parser.parse_args()
+
+    try:
+      rules = MaintainersFileParser.parse()
+
+      if options.print_rules:
+        RuleListPrinter.print(rules)
+      elif len(paths) > 0:
+        matches = RuleListEvaluator(rules).find_maintainers_for(paths)
+        print(json.dumps(matches, indent=4))
+      else:
+        print("Nothing to do; no flag nor paths given")
+    except FindMaintainersException as e:
+      print(colored("An error occured: {}".format(e.message), "red"))
+      print(e.details)
+      sys.exit(1)
